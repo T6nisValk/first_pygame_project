@@ -18,8 +18,8 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # Init player
 velocity_y = 0
-GRAVITY = 0.01  # Reduced gravity for slower falling
-JUMP_HEIGHT = 3  # Lower jump strength for slower jump
+GRAVITY = 0.005  # Reduced gravity for slower falling
+JUMP_HEIGHT = 2  # Lower jump strength for slower jump
 PLAYER_WIDTH = 20
 PLAYER_HEIGHT = 20
 STARTING_X_POSITION = 10
@@ -43,6 +43,12 @@ GROUND_Y_POSITION = STARTING_Y_POSITION + PLAYER_HEIGHT
 GROUND_WIDTH = 800
 GROUND_HEIGHT = 1
 ground = pygame.Rect(GROUND_X_POSITION, GROUND_Y_POSITION, GROUND_WIDTH, GROUND_HEIGHT)
+
+PLATFORM_X = 200
+PLATFORM_Y = 400
+PLATFORM_WIDTH = 50
+PLATFORM_HEIGHT = 1
+platform = pygame.Rect(PLATFORM_X, PLATFORM_Y, PLATFORM_WIDTH, PLATFORM_HEIGHT)
 
 # Floating-point position for more precise movement
 player_x = player.x
@@ -79,6 +85,7 @@ while run:
         pygame.draw.rect(screen, BLUE_COLOR, obstacle)
 
         # Draw ground and player
+        pygame.draw.rect(screen, GREEN_COLOR, platform)
         pygame.draw.rect(screen, GREEN_COLOR, ground)  # Ground
         pygame.draw.rect(screen, RED_COLOR, player, border_radius=20)  # Player
 
@@ -115,6 +122,29 @@ while run:
         # Check for collision between player and obstacle (game over condition)
         if player.colliderect(obstacle):
             game_over = True  # Set game over flag
+        # Assuming player and platform are defined as Rect objects
+        if player.colliderect(platform):
+            # If the player is falling (below the platform) and collides
+            if player.y + PLAYER_HEIGHT <= platform.y:
+                # Player lands on the platform
+                player.y = (
+                    platform.y - PLAYER_HEIGHT
+                )  # Set player's y to be just on top of the platform
+                velocity_y = 0  # Reset vertical velocity
+                is_jumping = False  # Set jumping state to false
+            elif player.y + PLAYER_HEIGHT > platform.y and player.y < platform.y:
+                # This condition may not be necessary, it's just a placeholder
+                player.y = platform.y  # Align to the top of the platform
+                velocity_y = 0
+                is_jumping = False
+            elif player.y > platform.y:
+                # If player is below the platform and colliding (e.g., landing from above)
+                player.y = (
+                    platform.y + 1
+                )  # Set player's y to just below the platform to prevent getting stuck
+            else:
+                # Default case, perhaps for ground detection or other behaviors
+                player.y = ground.y - PLAYER_HEIGHT  # Reset to ground level
 
     else:
         # If the game is over, display the Game Over screen
