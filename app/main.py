@@ -1,176 +1,103 @@
 import pygame
 
-# Initialize Pygame
-pygame.init()
-
 # Colors
-RED_COLOR = (255, 0, 0)
-BLACK_COLOR = (0, 0, 0)
-GREEN_COLOR = (0, 255, 0)
-BLUE_COLOR = (0, 0, 255)
-WHITE_COLOR = (255, 255, 255)
+BROWN = (139, 69, 19)
+BLACK = (0, 0, 0)
+# Main window
+pygame.display.set_caption("Tank")
+WIDTH, HEIGHT = 800, 600
+WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 
-# Set screen dimensions
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+# Tank properties
+TANK_WIDTH, TANK_HEIGHT = 40, 40
 
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+# Player
+PLAYER_TANK = pygame.image.load("assets/images/player_tank.png")
+PLAYER = pygame.transform.scale(PLAYER_TANK, (TANK_WIDTH, TANK_HEIGHT))
+# PLAYER = pygame.transform.rotate(PLAYER, 90)
+PLAYER_SPEED = 11
 
-# Init player
-velocity_y = 0
-GRAVITY = 0.005  # Reduced gravity for slower falling
-JUMP_HEIGHT = 2  # Lower jump strength for slower jump
-PLAYER_WIDTH = 20
-PLAYER_HEIGHT = 20
-STARTING_X_POSITION = 10
-STARTING_Y_POSITION = SCREEN_HEIGHT - PLAYER_HEIGHT - 50
-player = pygame.Rect(STARTING_X_POSITION, STARTING_Y_POSITION, PLAYER_WIDTH, PLAYER_HEIGHT)
+# Enemy
+ENEMY_TANK = pygame.image.load("assets/images/enemy_tank.png")
+ENEMY = pygame.transform.scale(ENEMY_TANK, (TANK_WIDTH, TANK_HEIGHT))
 
-# Init obstacle
-OBSTACLE_SPEED = 0.05
-obstacle_x = 850
-OBSTACLE_Y = STARTING_Y_POSITION - 20
-OBSTACLE_WIDTH = 20
-OBSTACLE_HEIGHT = 40
-obstacle = pygame.Rect(obstacle_x, OBSTACLE_Y, OBSTACLE_WIDTH, OBSTACLE_HEIGHT)
+# World Borders
+LEFT = pygame.Rect(0, 0, 10, 600)
+TOP = pygame.Rect(0, 0, 800, 10)
+RIGHT = pygame.Rect(WIDTH - 10, 0, 10, 600)
+BOTTOM = pygame.Rect(0, HEIGHT - 10, 800, 10)
 
-# Set fractional movement speed
-MOVEMENT_SPEED = 0.3  # Slow movement speed
-
-# Init World (ground)
-GROUND_X_POSITION = 0
-GROUND_Y_POSITION = STARTING_Y_POSITION + PLAYER_HEIGHT
-GROUND_WIDTH = 800
-GROUND_HEIGHT = 1
-ground = pygame.Rect(GROUND_X_POSITION, GROUND_Y_POSITION, GROUND_WIDTH, GROUND_HEIGHT)
-
-PLATFORM_X = 200
-PLATFORM_Y = 400
-PLATFORM_WIDTH = 50
-PLATFORM_HEIGHT = 1
-platform = pygame.Rect(PLATFORM_X, PLATFORM_Y, PLATFORM_WIDTH, PLATFORM_HEIGHT)
-
-# Floating-point position for more precise movement
-player_x = player.x
-player_y = player.y
-
-# Font
-font = pygame.font.SysFont(None, 55)
-
-# Event loop
-is_jumping = False
-run = True
-game_over = False  # Flag for game over state
+# FPS
+clock = pygame.time.Clock()
+FPS = 60
 
 
-def display_game_over():
-    game_over_text = font.render("Game Over", True, WHITE_COLOR)
-    restart_text = font.render("Press 'R' to Restart or 'Q' to Quit", True, WHITE_COLOR)
-    screen.blit(game_over_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 30))
-    screen.blit(restart_text, (SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 + 10))
+# Rotation
+def tank_rotate(tank, rot):
+    tank = pygame.transform.rotate(tank, rot)
+
+
+def draw_borders():
+    pygame.draw.rect(WINDOW, BLACK, LEFT)
+    pygame.draw.rect(WINDOW, BLACK, TOP)
+    pygame.draw.rect(WINDOW, BLACK, RIGHT)
+    pygame.draw.rect(WINDOW, BLACK, BOTTOM)
+
+
+# Draw window
+def draw_window(player, enemy):
+    WINDOW.fill(BROWN)
+    draw_borders()
+
+    WINDOW.blit(ENEMY, (enemy.x, enemy.y))
+    WINDOW.blit(PLAYER, (player.x, player.y))
     pygame.display.update()
 
 
-while run:
+def move_player(keys, player, enemy):
+    # Move left
+    if keys[pygame.K_a] and not player.colliderect(LEFT):
+        player.x -= PLAYER_SPEED
+        if player.colliderect(enemy):
+            player.x += PLAYER_SPEED
 
-    # Fill screen with black color (background)
-    screen.fill(BLACK_COLOR)
+    # Move right
+    if keys[pygame.K_d] and not player.colliderect(RIGHT):
+        player.x += PLAYER_SPEED
+        if player.colliderect(enemy):
+            player.x -= PLAYER_SPEED
 
-    if not game_over:
-        # Draw obstacle
-        obstacle_x -= OBSTACLE_SPEED
-        if obstacle_x < 0 - OBSTACLE_WIDTH:
-            obstacle_x = SCREEN_WIDTH + 20
-        obstacle.x = round(obstacle_x)
-        pygame.draw.rect(screen, BLUE_COLOR, obstacle)
+    # Move up
+    if keys[pygame.K_w] and not player.colliderect(TOP):
+        player.y -= PLAYER_SPEED
+        if player.colliderect(enemy):
+            player.y += PLAYER_SPEED
 
-        # Draw ground and player
-        pygame.draw.rect(screen, GREEN_COLOR, platform)
-        pygame.draw.rect(screen, GREEN_COLOR, ground)  # Ground
-        pygame.draw.rect(screen, RED_COLOR, player, border_radius=20)  # Player
+    # Move down
+    if keys[pygame.K_s] and not player.colliderect(BOTTOM):
+        player.y += PLAYER_SPEED
+        if player.colliderect(enemy):
+            player.y -= PLAYER_SPEED
 
-        # Register key press
-        key = pygame.key.get_pressed()
 
-        # Move right and left using fractional speed
-        if (key[pygame.K_a] or key[pygame.K_LEFT]) and player_x > 0:
-            player_x -= MOVEMENT_SPEED  # Move left slower
-        if (key[pygame.K_d] or key[pygame.K_RIGHT]) and player_x < (SCREEN_WIDTH - player.width):
-            player_x += MOVEMENT_SPEED  # Move right slower
+# Main event loop
+def main():
+    run = True
+    enemy = pygame.Rect(100, 100, TANK_WIDTH, TANK_HEIGHT)
+    player = pygame.Rect(400 - TANK_WIDTH, 600 - TANK_HEIGHT, TANK_WIDTH, TANK_HEIGHT)
+    while run:
 
-        # Jump logic
-        if (
-            key[pygame.K_SPACE] and not is_jumping
-        ):  # If space is pressed and player is not already jumping
-            velocity_y = -JUMP_HEIGHT  # Set upward velocity for jump
-            is_jumping = True
+        keys = pygame.key.get_pressed()
+        move_player(keys, player, enemy)
 
-        # Apply gravity continuously
-        velocity_y += GRAVITY
-        player_y += velocity_y
-
-        # Prevent the player from falling through the ground
-        if player_y >= STARTING_Y_POSITION:
-            player_y = STARTING_Y_POSITION
-            velocity_y = 0
-            is_jumping = False  # Reset jump
-
-        # Update player Rect position
-        player.x = round(player_x)
-        player.y = round(player_y)
-
-        # Check for collision between player and obstacle (game over condition)
-        if player.colliderect(obstacle):
-            game_over = True  # Set game over flag
-        # Assuming player and platform are defined as Rect objects
-        if player.colliderect(platform):
-            # If the player is falling (below the platform) and collides
-            if player.y + PLAYER_HEIGHT <= platform.y:
-                # Player lands on the platform
-                player.y = (
-                    platform.y - PLAYER_HEIGHT
-                )  # Set player's y to be just on top of the platform
-                velocity_y = 0  # Reset vertical velocity
-                is_jumping = False  # Set jumping state to false
-            elif player.y + PLAYER_HEIGHT > platform.y and player.y < platform.y:
-                # This condition may not be necessary, it's just a placeholder
-                player.y = platform.y  # Align to the top of the platform
-                velocity_y = 0
-                is_jumping = False
-            elif player.y > platform.y:
-                # If player is below the platform and colliding (e.g., landing from above)
-                player.y = (
-                    platform.y + 1
-                )  # Set player's y to just below the platform to prevent getting stuck
-            else:
-                # Default case, perhaps for ground detection or other behaviors
-                player.y = ground.y - PLAYER_HEIGHT  # Reset to ground level
-
-    else:
-        # If the game is over, display the Game Over screen
-        display_game_over()
-
-        # Handle restart or quit
         for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:  # Restart the game
-                    # Reset player and obstacle positions to restart the game
-                    player_x = STARTING_X_POSITION
-                    player_y = STARTING_Y_POSITION
-                    obstacle_x = SCREEN_WIDTH
-                    velocity_y = 0
-                    is_jumping = False
-                    game_over = False  # Reset game over flag
-                elif event.key == pygame.K_q:  # Quit the game
-                    run = False
+            if event.type == pygame.QUIT:
+                run = False
 
-    # Quit game when X is pressed
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
+        draw_window(player, enemy)
+        clock.tick(FPS)
+    pygame.quit()
 
-    # Update screen
-    pygame.display.update()
 
-# Quit Pygame
-pygame.quit()
+if __name__ == "__main__":
+    main()
