@@ -1,9 +1,12 @@
 import pygame
 import random
+import sys
 
 # Colors
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+BROWN = (160, 82, 45)
+WHITE = (255, 255, 255)
 
 # Window settings
 WIN_WIDTH = 800
@@ -15,83 +18,114 @@ WINDOW = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
 
 # Player settings
 PLAYER_WIDTH = 20
-PLAYER_SPEED = 7
+
+# Bottom info bar
+INFO_WIDTH = 50
+INFO = pygame.Rect(0, 550, WIN_WIDTH, INFO_WIDTH)
+
+# Info text
+pygame.font.init()
+font = pygame.font.SysFont(None, 36)
 
 
-def draw_window(player, new):
-    """Draw the player and the new rectangle."""
-    WINDOW.fill(BLACK)  # Clear the window
-    pygame.draw.rect(WINDOW, RED, player, border_radius=20)  # Draw player
-    pygame.draw.rect(WINDOW, RED, new, border_radius=20)  # Draw new rectangle
-    pygame.display.update()  # Update the display
-
-
-def move(key, player):
-    """Move the player based on key presses."""
-    if (
-        not player.x > 0
-        or not player.y > 0
-        or not player.x < WIN_WIDTH - PLAYER_WIDTH
-        or not player.y < WIN_HEIGHT - PLAYER_WIDTH
-    ):
-        pass
-    else:
-        player.x += PLAYER_SPEED
-        if key[pygame.K_a]:
-            player.x -= PLAYER_SPEED
-        if key[pygame.K_d]:
-            player.x += PLAYER_SPEED
-        if key[pygame.K_w]:
-            player.y -= PLAYER_SPEED
-        if key[pygame.K_s]:
-            player.y += PLAYER_SPEED
-
-    # if (key[pygame.K_a] or key[pygame.K_LEFT]) and player.x > 0:  # Move left
-    #     player.x -= PLAYER_SPEED
-    # elif (
-    #     key[pygame.K_d] or key[pygame.K_RIGHT]
-    # ) and player.x < WIN_WIDTH - PLAYER_WIDTH:  # Move right
-    #     player.x += PLAYER_SPEED
-    # elif (key[pygame.K_w] or key[pygame.K_UP]) and player.y > 0:  # Move up
-    #     player.y -= PLAYER_SPEED
-    # elif (
-    #     key[pygame.K_s] or key[pygame.K_DOWN]
-    # ) and player.y < WIN_HEIGHT - PLAYER_WIDTH:  # Move down
-    #     player.y += PLAYER_SPEED
+def draw_window(snake_segments, new, score):
+    """Draw the snake and the new rectangle."""
+    WINDOW.fill(BLACK)
+    for segment in snake_segments:
+        pygame.draw.rect(WINDOW, RED, segment, border_radius=10)
+    pygame.draw.rect(WINDOW, RED, new, border_radius=10)
+    pygame.draw.rect(WINDOW, BROWN, INFO)
+    score_info = font.render(f"Score: {score}", True, WHITE)
+    WINDOW.blit(score_info, (20, 565))
+    pygame.display.update()
 
 
 def respawn_new(new):
     """Respawn the new rectangle at a random position."""
     new.x = random.randint(0, WIN_WIDTH - PLAYER_WIDTH)
-    new.y = random.randint(0, WIN_HEIGHT - PLAYER_WIDTH)
+    new.y = random.randint(0, (WIN_HEIGHT - INFO_WIDTH) - PLAYER_WIDTH)
+
+
+def boundary(player):
+    """Check if player hits the wall"""
+    if player.x < -PLAYER_WIDTH:
+        player.x = WIN_WIDTH
+    if player.x > WIN_WIDTH:
+        player.x = -PLAYER_WIDTH
+    if player.y < -PLAYER_WIDTH:
+        player.y = WIN_HEIGHT - INFO_WIDTH
+    if player.y > WIN_HEIGHT - INFO_WIDTH:
+        player.y = -PLAYER_WIDTH
+
+
+def move_player(key, PLAYER_SPEED, DIR_X, DIR_Y):
+    """Player direction"""
+    if key == pygame.K_a and DIR_X == 0:
+        return -PLAYER_SPEED, 0
+    if key == pygame.K_d and DIR_X == 0:
+        return PLAYER_SPEED, 0
+    if key == pygame.K_w and DIR_Y == 0:
+        return 0, -PLAYER_SPEED
+    if key == pygame.K_s and DIR_Y == 0:
+        return 0, PLAYER_SPEED
+    return DIR_X, DIR_Y
+
+
+def add_segment(snake_segments):
+    """Add a new segment to the snake."""
+    last_segment = snake_segments[-1]
+    new_segment = pygame.Rect(last_segment.x, last_segment.y, PLAYER_WIDTH, PLAYER_WIDTH)
+    snake_segments.append(new_segment)
+
+
+def move_snake(snake_segments, DIR_X, DIR_Y):
+    """Move the snake segments."""
+    for i in range(len(snake_segments) - 1, 0, -1):
+        snake_segments[i].x = snake_segments[i - 1].x
+        snake_segments[i].y = snake_segments[i - 1].y
+
+    snake_segments[0].x += DIR_X
+    snake_segments[0].y += DIR_Y
 
 
 def main():
     """Main game loop."""
     run = True
-    player = pygame.Rect(10, 10, PLAYER_WIDTH, PLAYER_WIDTH)  # Initialize player position
+    score = 0
+
+    snake_segments = [pygame.Rect(10, 10, PLAYER_WIDTH, PLAYER_WIDTH)]
+    PLAYER_SPEED = 2
+    DIR_X, DIR_Y = PLAYER_SPEED, 0
+
     new = pygame.Rect(
         random.randint(0, WIN_WIDTH - PLAYER_WIDTH),
         random.randint(0, WIN_HEIGHT - PLAYER_WIDTH),
         PLAYER_WIDTH,
         PLAYER_WIDTH,
-    )  # Initialize new rectangle position
+    )
 
     while run:
-        clock.tick(FPS)  # Control the frame rate
-        draw_window(player, new)  # Draw everything
-        key = pygame.key.get_pressed()  # Get pressed keys
-        move(key, player)  # Move the player
+        clock.tick(FPS)
+        draw_window(snake_segments, new, score)
 
-        # Check for collision with the new rectangle
-        if player.colliderect(new):
-            respawn_new(new)  # Respawn new rectangle at a random position
+        if snake_segments[0].colliderect(new):
+            respawn_new(new)
+            add_segment(snake_segments)
+            PLAYER_SPEED += 0.1
+            score += 1
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+            if event.type == pygame.KEYDOWN:
+                DIR_X, DIR_Y = move_player(event.key, PLAYER_SPEED, DIR_X, DIR_Y)
+
+        move_snake(snake_segments, DIR_X, DIR_Y)
+
+        boundary(snake_segments[0])
 
     pygame.quit()
+    sys.exit()
 
 
 if __name__ == "__main__":
