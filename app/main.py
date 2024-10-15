@@ -83,24 +83,7 @@ class SnakeGame:
             if i == 0:
                 self.window.blit(self.head, (segment.x, segment.y))
             else:
-                # Check if the segment is a corner and display the appropriate image
-                if i > 0 and i < len(self.snake_segments) - 1:
-                    prev_dir = self.segment_directions[i]
-                    next_dir = self.segment_directions[i + 1]
-
-                    # Determine the corner based on direction change
-                    if prev_dir == "left" and next_dir == "down":
-                        self.window.blit(TOP_LEFT, (segment.x, segment.y))
-                    elif prev_dir == "down" and next_dir == "left":
-                        self.window.blit(BOTTOM_LEFT, (segment.x, segment.y))
-                    elif prev_dir == "right" and next_dir == "down":
-                        self.window.blit(TOP_RIGHT, (segment.x, segment.y))
-                    elif prev_dir == "down" and next_dir == "right":
-                        self.window.blit(BOTTOM_RIGHT, (segment.x, segment.y))
-                    else:
-                        self.window.blit(self.body, (segment.x, segment.y))
-                else:
-                    self.window.blit(self.body, (segment.x, segment.y))
+                pygame.draw.rect(self.window, RED, self.new, border_radius=10)
 
         # Draw target rectangle
         pygame.draw.rect(self.window, RED, self.new, border_radius=10)
