@@ -22,6 +22,29 @@ INFO_WIDTH = 50
 # Initialize Pygame font
 pygame.font.init()
 
+# Load images
+HEAD_WIDTH, HEAD_HEIGHT = 40, 40
+BODY_WIDTH, BODY_HEIGHT = 40, 20
+HEAD = pygame.image.load("assets/images/snake_head.png")
+HEAD = pygame.transform.rotate(HEAD, 90)  # Starting direction
+HEAD = pygame.transform.scale(HEAD, (HEAD_WIDTH, HEAD_HEIGHT))
+BODY = pygame.image.load("assets/images/snake_body.png")
+BODY = pygame.transform.rotate(BODY, 0)  # Starting direction
+BODY = pygame.transform.scale(BODY, (BODY_WIDTH, BODY_HEIGHT))
+
+# Load corner images
+TOP_LEFT = pygame.image.load("assets/images/top_left_corner.png")
+TOP_LEFT = pygame.transform.scale(TOP_LEFT, (BODY_WIDTH, BODY_HEIGHT))
+
+TOP_RIGHT = pygame.image.load("assets/images/top_right_corner.png")
+TOP_RIGHT = pygame.transform.scale(TOP_RIGHT, (BODY_WIDTH, BODY_HEIGHT))
+
+BOTTOM_LEFT = pygame.image.load("assets/images/bottom_left_corner.png")
+BOTTOM_LEFT = pygame.transform.scale(BOTTOM_LEFT, (BODY_WIDTH, BODY_HEIGHT))
+
+BOTTOM_RIGHT = pygame.image.load("assets/images/bottom_right_corner.png")
+BOTTOM_RIGHT = pygame.transform.scale(BOTTOM_RIGHT, (BODY_WIDTH, BODY_HEIGHT))
+
 
 class SnakeGame:
     def __init__(self):
@@ -32,8 +55,14 @@ class SnakeGame:
         self.font = pygame.font.SysFont(None, 36)
 
         # Snake and game settings
+        self.direction = "right"
+        self.original_body = BODY
+        self.body = self.original_body
+        self.original_head = HEAD
+        self.head = self.original_head
         self.snake_segments = [pygame.Rect(10, 10, PLAYER_WIDTH, PLAYER_WIDTH)]
-        self.player_speed = 2
+        self.segment_directions = ["right"]  # List to store direction of each segment
+        self.player_speed = 5
         self.dir_x, self.dir_y = self.player_speed, 0
         self.new = pygame.Rect(
             random.randint(0, WIN_WIDTH - PLAYER_WIDTH),
@@ -50,8 +79,28 @@ class SnakeGame:
         self.window.fill(BLACK)
 
         # Draw snake segments
-        for segment in self.snake_segments:
-            pygame.draw.rect(self.window, RED, segment, border_radius=10)
+        for i, segment in enumerate(self.snake_segments):
+            if i == 0:
+                self.window.blit(self.head, (segment.x, segment.y))
+            else:
+                # Check if the segment is a corner and display the appropriate image
+                if i > 0 and i < len(self.snake_segments) - 1:
+                    prev_dir = self.segment_directions[i]
+                    next_dir = self.segment_directions[i + 1]
+
+                    # Determine the corner based on direction change
+                    if prev_dir == "left" and next_dir == "down":
+                        self.window.blit(TOP_LEFT, (segment.x, segment.y))
+                    elif prev_dir == "down" and next_dir == "left":
+                        self.window.blit(BOTTOM_LEFT, (segment.x, segment.y))
+                    elif prev_dir == "right" and next_dir == "down":
+                        self.window.blit(TOP_RIGHT, (segment.x, segment.y))
+                    elif prev_dir == "down" and next_dir == "right":
+                        self.window.blit(BOTTOM_RIGHT, (segment.x, segment.y))
+                    else:
+                        self.window.blit(self.body, (segment.x, segment.y))
+                else:
+                    self.window.blit(self.body, (segment.x, segment.y))
 
         # Draw target rectangle
         pygame.draw.rect(self.window, RED, self.new, border_radius=10)
@@ -84,26 +133,40 @@ class SnakeGame:
 
     def move_player(self, key):
         """Handle player direction based on key press."""
-        if key == pygame.K_a and self.dir_x == 0:
+        if key == pygame.K_a and self.dir_x == 0:  # Move left
+            self.head = pygame.transform.rotate(self.original_head, 180)
             self.dir_x, self.dir_y = -self.player_speed, 0
-        elif key == pygame.K_d and self.dir_x == 0:
+            self.direction = "left"  # Update direction
+
+        elif key == pygame.K_d and self.dir_x == 0:  # Move right
+            self.head = pygame.transform.rotate(self.original_head, 0)
             self.dir_x, self.dir_y = self.player_speed, 0
-        elif key == pygame.K_w and self.dir_y == 0:
+            self.direction = "right"  # Update direction
+
+        elif key == pygame.K_w and self.dir_y == 0:  # Move up
+            self.head = pygame.transform.rotate(self.original_head, 90)
             self.dir_x, self.dir_y = 0, -self.player_speed
-        elif key == pygame.K_s and self.dir_y == 0:
+            self.direction = "up"  # Update direction
+
+        elif key == pygame.K_s and self.dir_y == 0:  # Move down
+            self.head = pygame.transform.rotate(self.original_head, 270)
             self.dir_x, self.dir_y = 0, self.player_speed
+            self.direction = "down"  # Update direction
 
     def add_segment(self):
         """Add a new segment to the snake."""
         last_segment = self.snake_segments[-1]
         new_segment = pygame.Rect(last_segment.x, last_segment.y, PLAYER_WIDTH, PLAYER_WIDTH)
         self.snake_segments.append(new_segment)
+        self.segment_directions.append(self.direction)  # Append new segment's direction
 
     def move_snake(self):
         """Move the snake segments."""
+        # Move body segments
         for i in range(len(self.snake_segments) - 1, 0, -1):
             self.snake_segments[i].x = self.snake_segments[i - 1].x
             self.snake_segments[i].y = self.snake_segments[i - 1].y
+            self.segment_directions[i] = self.segment_directions[i - 1]
 
         # Move the head in the current direction
         self.snake_segments[0].x += self.dir_x
