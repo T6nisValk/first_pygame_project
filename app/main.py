@@ -1,5 +1,6 @@
 import pygame
 import sys
+import random
 
 # Initialize Pygame
 pygame.init()
@@ -21,6 +22,16 @@ class PlatFormer:
         self.ground_height = 50
         self.ground = pygame.Rect(
             0, self.WINDOW_DIM[1] - self.ground_height, self.WINDOW_DIM[0], self.ground_height
+        )
+
+        # Platforms
+        self.platform_height = 20
+        self.platform_width = 40
+        self.platform = pygame.Rect(
+            random.randint(20, 780),
+            random.randint(20, 500),
+            self.platform_width,
+            self.platform_height,
         )
 
         # Square (Player) Settings
@@ -57,7 +68,7 @@ class PlatFormer:
         keys = pygame.key.get_pressed()
 
         # Horizontal movement (A = left, D = right)
-        if keys[pygame.K_a] and self.square.x > 0:
+        if keys[pygame.K_a] and self.square.x > 0 and self.square.colliderect(self.platform):
             self.square.x -= self.move_speed
         if keys[pygame.K_d] and self.square.x < self.WINDOW_DIM[0] - self.square_size:
             self.square.x += self.move_speed
@@ -85,6 +96,7 @@ class PlatFormer:
         # Clear the screen and draw everything again
         self.WINDOW.fill(self.BLACK)
         pygame.draw.rect(self.WINDOW, self.DARK_BROWN, self.ground)  # Draw the ground
+        pygame.draw.rect(self.WINDOW, self.DARK_BROWN, self.platform)
         pygame.draw.rect(self.WINDOW, self.GREEN, self.square)  # Draw the square (player)
 
         # Update display
