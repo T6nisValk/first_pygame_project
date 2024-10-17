@@ -113,15 +113,7 @@ class PlatFormer:
             # Blit the background
             self.WINDOW.blit(self.bg, (i * self.bg.get_width() + self.scroll, 0))
 
-            # Blit the platform at the random position for the current tile
-            platform_x, platform_y = self.platform_positions[i]
-            self.WINDOW.blit(
-                self.platform,
-                (
-                    (i * self.bg.get_width()) + platform_x + self.scroll,
-                    platform_y,
-                ),
-            )
+            # add platform spawn
 
         # Draw the square (player)
         pygame.draw.rect(self.WINDOW, self.GREEN, self.square)
