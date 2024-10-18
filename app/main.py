@@ -1,168 +1,207 @@
 import pygame
 import sys
-import random
+from random import randint
 
-# Initialize Pygame
+# Init game
 pygame.init()
 
 
-class PlatFormer:
+class Platformer:
     def __init__(self):
-        # Window and Game Settings
-        self.WINDOW_DIM = (800, 600)
-        self.WINDOW = pygame.display.set_mode(self.WINDOW_DIM)
-        pygame.display.set_caption("Basic Jumping")
-        self.BLACK = (0, 0, 0)
-        self.GREEN = (0, 255, 0)
-        self.DARK_BROWN = (77, 43, 22)
-        self.CLOCK = pygame.time.Clock()
-        self.FPS = 60
-        self.bg = pygame.image.load("assets/images/background.jpg")
-        self.bg = pygame.transform.scale(self.bg, (800, 600))
-        self.tiles = 3  # Number of tiles to draw
-        self.scroll = 0
-        self.platform_x = 0
-        # Platforms
-        self.platform = pygame.image.load("assets/images/platform.jpg")
-        self.platform_width = self.platform.get_width()
-        self.platform_height = self.platform.get_height()
+        # Window parameters
+        self.window = pygame.display.set_mode((1000, 800))
+        self.run = True
+        self.fps = 60
+        self.clock = pygame.time.Clock()
 
-        self.ground_height = 52
+        # Snake
+        self.snake_head = pygame.Rect(20, 20, 40, 40)
+        self.snake_body_size = 30
+        self.snake_speed = 11
+        self.segments = []
 
-        # Square (Player) Settings
-        self.square_size = 30
-        self.square = pygame.Rect(
-            self.WINDOW_DIM[0] / 2 - self.square_size,
-            self.WINDOW_DIM[1] - self.ground_height - self.square_size,
-            self.square_size,
-            self.square_size,
-        )
-        self.move_speed = 10
+        # Food
+        self.food_size = 30
+        self.is_spawned = False
 
-        # Jump/Gravity Settings
-        self.gravity = 2  # Force pulling down
-        self.jump_power = 30  # Force of the jump
-        self.velocity_y = 0  # Vertical velocity
-        self.is_jumping = False
+        # State
+        self.state = "menu"
 
-        # Generate random positions for each tile's platform
-        self.platform_positions = self.generate_platform_positions()
+        self.hover_start = False
+        self.hover_options = False
+        self.hover_quit = False
+        self.hover_back = False
 
-    def generate_platform_positions(self):
-        """Generates random x and y positions for each tile's platform."""
-        positions = []
-        for _ in range(self.tiles):
-            # Random x position within the tile (bg width)
-            platform_x = random.randint(0, self.WINDOW_DIM[0] - self.platform_width)
-            # Random y position but ensuring it's above the ground level
-            platform_y = random.randint(
-                200, self.WINDOW_DIM[1] - self.ground_height - self.platform_height
+    def collision(self):
+        if self.snake_head.colliderect(self.food):
+            self.is_spawned = False
+
+    def create_food(self):
+        if not self.is_spawned:
+            window_height = self.window.get_height() - self.food_size
+            window_width = self.window.get_width() - self.food_size
+
+            self.food = pygame.Rect(
+                randint(30, window_width),
+                randint(30, window_height),
+                self.food_size,
+                self.food_size,
             )
-            positions.append((platform_x, platform_y))
-        return positions
+            self.is_spawned = True
 
-    def main_loop(self):
-        while True:
-            self.handle_events()  # Handle input events
-            self.move_player()  # Update player movement
-            self.apply_gravity()  # Apply gravity effects
-            self.draw_window()  # Redraw window and objects
-
-            if self.scroll < -self.WINDOW_DIM[0]:
-                self.scroll = 0
-            if self.scroll > self.WINDOW_DIM[0]:
-                self.scroll = 0
-
-    def handle_events(self):
-        # Event Handling (quit)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-
-    def move_player(self):
+    def move_snake(self):
         keys = pygame.key.get_pressed()
-
-        # Horizontal movement (A = left, D = right)
-        if keys[pygame.K_a]:
-            self.platform_x += self.move_speed
-            self.scroll += self.move_speed
-        if keys[pygame.K_d]:
-            self.platform_x -= self.move_speed
-            self.scroll -= self.move_speed
-
-        # Platform collision check for movement
-        platform_rect = pygame.Rect(
-            240 + self.platform_x, 400, self.platform_width, self.platform_height
-        )
-
-        # Check if player is within platform bounds when moving
-        if platform_rect.left <= self.square.centerx <= platform_rect.right:
-            # If player is on platform and within bounds, adjust ground height
-            if self.square.bottom >= platform_rect.top:
-                self.ground_height = (
-                    self.WINDOW_DIM[1] - platform_rect.top
-                )  # Set ground height to platform
-        else:
-            # Reset ground height if not on the platform
-            self.ground_height = 52
-
-        # Jumping logic (SPACE= jump)
-        if keys[pygame.K_SPACE] and not self.is_jumping:
-            self.is_jumping = True
-            self.velocity_y = -self.jump_power  # Jumping upwards
-
-    def apply_gravity(self):
-        # Gravity and ground collision detection
-        if self.is_jumping:
-            self.velocity_y += self.gravity  # Gravity pulling down
-            self.square.y += self.velocity_y  # Apply vertical velocity
-
-            # Check for platform collision
-            platform_rect = pygame.Rect(
-                240 + self.platform_x, 400, self.platform_width, self.platform_height
-            )
-
-            # If player is above the platform and moving down
-            if (
-                platform_rect.colliderect(self.square)
-                and self.square.bottom <= platform_rect.top + self.velocity_y
-                and platform_rect.left <= self.square.centerx <= platform_rect.right
-            ):
-                self.square.y = platform_rect.top - self.square_size  # Land on platform
-                self.is_jumping = False
-                self.velocity_y = 0
-                self.ground_height = self.WINDOW_DIM[1] - platform_rect.top  # Set new ground height
-            else:
-                # If not on the platform, reset to ground height
-                if self.square.y >= self.WINDOW_DIM[1] - self.ground_height - self.square_size:
-                    self.square.y = (
-                        self.WINDOW_DIM[1] - self.ground_height - self.square_size
-                    )  # Stay on the ground
-                    self.is_jumping = False  # Stop jumping
-                    self.velocity_y = 0  # Reset vertical velocity
-                else:
-                    self.ground_height = 52  # Reset ground height when off the platform
+        x_limit = self.window.get_width() - self.snake_head.width - 10
+        y_limit = self.window.get_height() - self.snake_head.height - 10
+        if keys[pygame.K_d] and self.snake_head.x < x_limit:
+            self.snake_head.x += self.snake_speed
+        elif keys[pygame.K_a] and self.snake_head.x > 10:
+            self.snake_head.x -= self.snake_speed
+        elif keys[pygame.K_w] and self.snake_head.y > 10:
+            self.snake_head.y -= self.snake_speed
+        elif keys[pygame.K_s] and self.snake_head.y < y_limit:
+            self.snake_head.y += self.snake_speed
 
     def draw_window(self):
-        # Clear the screen and draw everything again
-        for i in range(-1, self.tiles):
-            # Blit the background
-            self.WINDOW.blit(self.bg, (i * self.bg.get_width() + self.scroll, 0))
+        # Draw background
+        self.window.fill((0, 0, 0))
 
-            # add platform spawn
-        self.WINDOW.blit(self.platform, (240 + self.platform_x, 400))
+        # Draw snake head
+        pygame.draw.rect(self.window, (111, 111, 111), self.snake_head, border_radius=30)
 
-        # Draw the square (player)
-        pygame.draw.rect(self.WINDOW, self.GREEN, self.square)
+        # Draw food
+        self.create_food()
+        pygame.draw.rect(self.window, (111, 111, 111), self.food, border_radius=30)
 
-        # Update display
+        # Update and fps
+        self.clock.tick(self.fps)
         pygame.display.update()
 
-        # Frame rate control
-        self.CLOCK.tick(self.FPS)
+    def key_event(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.run = False
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.state = "menu"
+
+    def run_game(self):
+        while self.run:
+
+            # Key events
+            self.key_event()
+
+            # States
+            if self.state == "menu":
+                self.main_menu()
+            elif self.state == "options":
+                self.options_menu()
+            elif self.state == "start":
+                # Draw objects
+                self.draw_window()
+
+                # Snake
+                self.move_snake()
+
+                # Check collision
+                self.collision()
+
+    def main_menu(self):
+        self.window.fill((0, 0, 0))
+
+        font = pygame.font.SysFont("Arial", 60)
+
+        title_text = font.render("Main Menu", True, (255, 0, 0))
+        if not self.hover_start:
+            start_text = font.render("Start Game", True, (255, 255, 255))
+        else:
+            start_text = font.render("Start Game", True, (255, 255, 111))
+
+        if not self.hover_options:
+            options_text = font.render("Options", True, (255, 255, 255))
+        else:
+            options_text = font.render("Options", True, (255, 255, 111))
+        if not self.hover_quit:
+            quit_text = font.render("Quit", True, (255, 255, 255))
+        else:
+            quit_text = font.render("Quit", True, (255, 255, 111))
+
+        title_rect = title_text.get_rect(center=(500, 150))
+        start_rect = start_text.get_rect(center=(500, 300))
+        options_rect = options_text.get_rect(center=(500, 400))
+        quit_rect = quit_text.get_rect(center=(500, 500))
+
+        self.window.blit(title_text, title_rect)
+        self.window.blit(start_text, start_rect)
+        self.window.blit(options_text, options_rect)
+        self.window.blit(quit_text, quit_rect)
+
+        pygame.display.update()
+        mouse_pos = pygame.mouse.get_pos()
+
+        if start_rect.collidepoint(mouse_pos):
+            self.hover_start = True
+        else:
+            self.hover_start = False
+
+        if options_rect.collidepoint(mouse_pos):
+            self.hover_options = True
+        else:
+            self.hover_options = False
+
+        if quit_rect.collidepoint(mouse_pos):
+            self.hover_quit = True
+        else:
+            self.hover_quit = False
+
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if start_rect.collidepoint(mouse_pos):
+                    self.state = "start"
+                elif options_rect.collidepoint(mouse_pos):
+                    self.state = "options"
+                elif quit_rect.collidepoint(mouse_pos):
+                    pygame.quit()
+                    sys.exit()
+
+            elif event.type == pygame.QUIT:
+                self.run = False
+                sys.exit()
+
+    def options_menu(self):
+        self.window.fill((0, 0, 0))
+
+        font = pygame.font.SysFont("Arial", 60)
+        options_text = font.render("Options Menu", True, (255, 0, 0))
+        if not self.hover_back:
+            back_text = font.render("Back", True, (255, 255, 255))
+        else:
+            back_text = font.render("Back", True, (255, 255, 111))
+
+        options_rect = options_text.get_rect(center=(500, 150))
+        back_rect = back_text.get_rect(center=(500, 500))
+
+        self.window.blit(options_text, options_rect)
+        self.window.blit(back_text, back_rect)
+
+        pygame.display.update()
+        mouse_pos = pygame.mouse.get_pos()
+
+        if back_rect.collidepoint(mouse_pos):
+            self.hover_back = True
+        else:
+            self.hover_back = False
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if back_rect.collidepoint(mouse_pos):
+                    self.state = "menu"
+            elif event.type == pygame.QUIT:
+                self.run = False
+                sys.exit()
 
 
 if __name__ == "__main__":
-    game = PlatFormer()
-    game.main_loop()
+    game = Platformer()
+    game.run_game()
