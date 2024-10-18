@@ -4,6 +4,7 @@ from random import randint
 
 # Init game
 pygame.init()
+pygame.display.set_caption("Snake-Like")
 
 
 class Platformer:
