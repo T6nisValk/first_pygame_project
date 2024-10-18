@@ -21,7 +21,7 @@ class PlatFormer:
         self.bg = pygame.transform.scale(self.bg, (800, 600))
         self.tiles = 3  # Number of tiles to draw
         self.scroll = 0
-
+        self.platform_x = 0
         # Platforms
         self.platform = pygame.image.load("assets/images/platform.jpg")
         self.platform_width = self.platform.get_width()
@@ -85,9 +85,28 @@ class PlatFormer:
 
         # Horizontal movement (A = left, D = right)
         if keys[pygame.K_a]:
+            self.platform_x += self.move_speed
             self.scroll += self.move_speed
         if keys[pygame.K_d]:
+            self.platform_x -= self.move_speed
             self.scroll -= self.move_speed
+
+        # Platform collision check for movement
+        platform_rect = pygame.Rect(
+            240 + self.platform_x, 400, self.platform_width, self.platform_height
+        )
+
+        # Check if player is within platform bounds when moving
+        if platform_rect.left <= self.square.centerx <= platform_rect.right:
+            # If player is on platform and within bounds, adjust ground height
+            if self.square.bottom >= platform_rect.top:
+                self.ground_height = (
+                    self.WINDOW_DIM[1] - platform_rect.top
+                )  # Set ground height to platform
+        else:
+            # Reset ground height if not on the platform
+            self.ground_height = 52
+
         # Jumping logic (SPACE= jump)
         if keys[pygame.K_SPACE] and not self.is_jumping:
             self.is_jumping = True
@@ -99,13 +118,31 @@ class PlatFormer:
             self.velocity_y += self.gravity  # Gravity pulling down
             self.square.y += self.velocity_y  # Apply vertical velocity
 
-            # Ground collision
-            if self.square.y >= self.WINDOW_DIM[1] - self.ground_height - self.square_size:
-                self.square.y = (
-                    self.WINDOW_DIM[1] - self.ground_height - self.square_size
-                )  # Stay on the ground
-                self.is_jumping = False  # Stop jumping
-                self.velocity_y = 0  # Reset vertical velocity
+            # Check for platform collision
+            platform_rect = pygame.Rect(
+                240 + self.platform_x, 400, self.platform_width, self.platform_height
+            )
+
+            # If player is above the platform and moving down
+            if (
+                platform_rect.colliderect(self.square)
+                and self.square.bottom <= platform_rect.top + self.velocity_y
+                and platform_rect.left <= self.square.centerx <= platform_rect.right
+            ):
+                self.square.y = platform_rect.top - self.square_size  # Land on platform
+                self.is_jumping = False
+                self.velocity_y = 0
+                self.ground_height = self.WINDOW_DIM[1] - platform_rect.top  # Set new ground height
+            else:
+                # If not on the platform, reset to ground height
+                if self.square.y >= self.WINDOW_DIM[1] - self.ground_height - self.square_size:
+                    self.square.y = (
+                        self.WINDOW_DIM[1] - self.ground_height - self.square_size
+                    )  # Stay on the ground
+                    self.is_jumping = False  # Stop jumping
+                    self.velocity_y = 0  # Reset vertical velocity
+                else:
+                    self.ground_height = 52  # Reset ground height when off the platform
 
     def draw_window(self):
         # Clear the screen and draw everything again
@@ -114,6 +151,7 @@ class PlatFormer:
             self.WINDOW.blit(self.bg, (i * self.bg.get_width() + self.scroll, 0))
 
             # add platform spawn
+        self.WINDOW.blit(self.platform, (240 + self.platform_x, 400))
 
         # Draw the square (player)
         pygame.draw.rect(self.WINDOW, self.GREEN, self.square)
