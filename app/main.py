@@ -286,15 +286,18 @@ class Platformer:
         self.window.fill((0, 0, 0))
 
         font = pygame.font.SysFont("Arial", 60)
+        placeholder = font.render("Nothing here yet", True, (255, 255, 255))
         options_text = font.render("Options Menu", True, (255, 0, 0))
         if not self.hover_back:
             back_text = font.render("Back", True, (255, 255, 255))
         else:
             back_text = font.render("Back", True, (255, 255, 111))
 
+        placeholder_rect = placeholder.get_rect(center=(500, 300))
         options_rect = options_text.get_rect(center=(500, 150))
         back_rect = back_text.get_rect(center=(500, 500))
 
+        self.window.blit(placeholder, placeholder_rect)
         self.window.blit(options_text, options_rect)
         self.window.blit(back_text, back_rect)
 
