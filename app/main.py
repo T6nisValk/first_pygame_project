@@ -20,10 +20,18 @@ class Platformer:
         self.snake_body_size = 30
         self.snake_speed = 11
         self.segments = []
+        self.snake_direction = 0
+        self.score = 0
 
         # Food
         self.food_size = 30
         self.is_spawned = False
+
+        # Borders
+        self.top = pygame.Rect(0, 0, 1000, 10)
+        self.bottom = pygame.Rect(0, 790, 1000, 10)
+        self.left = pygame.Rect(0, 0, 10, 800)
+        self.right = pygame.Rect(990, 0, 10, 800)
 
         # State
         self.state = "menu"
@@ -32,19 +40,20 @@ class Platformer:
         self.hover_options = False
         self.hover_quit = False
         self.hover_back = False
+        self.hover_new = False
+        self.hover_main = False
 
     def collision(self):
         if self.snake_head.colliderect(self.food):
+            self.score += 1
             self.is_spawned = False
 
     def create_food(self):
         if not self.is_spawned:
-            window_height = self.window.get_height() - self.food_size
-            window_width = self.window.get_width() - self.food_size
 
             self.food = pygame.Rect(
-                randint(30, window_width),
-                randint(30, window_height),
+                randint(100, 900 - self.food_size),
+                randint(100, 700 - self.food_size),
                 self.food_size,
                 self.food_size,
             )
@@ -52,16 +61,34 @@ class Platformer:
 
     def move_snake(self):
         keys = pygame.key.get_pressed()
-        x_limit = self.window.get_width() - self.snake_head.width - 10
-        y_limit = self.window.get_height() - self.snake_head.height - 10
-        if keys[pygame.K_d] and self.snake_head.x < x_limit:
+        x_limit = self.window.get_width() - self.snake_head.width
+        y_limit = self.window.get_height() - self.snake_head.height
+
+        if self.snake_direction == 0:
             self.snake_head.x += self.snake_speed
-        elif keys[pygame.K_a] and self.snake_head.x > 10:
-            self.snake_head.x -= self.snake_speed
-        elif keys[pygame.K_w] and self.snake_head.y > 10:
-            self.snake_head.y -= self.snake_speed
-        elif keys[pygame.K_s] and self.snake_head.y < y_limit:
+            if self.snake_head.x > x_limit:
+                self.state = "gameover"
+        elif self.snake_direction == 90:
             self.snake_head.y += self.snake_speed
+            if self.snake_head.y > y_limit:
+                self.state = "gameover"
+        elif self.snake_direction == 180:
+            self.snake_head.x -= self.snake_speed
+            if self.snake_head.x < 0:
+                self.state = "gameover"
+        elif self.snake_direction == 270:
+            self.snake_head.y -= self.snake_speed
+            if self.snake_head.y < 0:
+                self.state = "gameover"
+
+        if keys[pygame.K_d] and self.snake_direction != 180:
+            self.snake_direction = 0
+        elif keys[pygame.K_a] and self.snake_direction != 0:
+            self.snake_direction = 180
+        elif keys[pygame.K_w] and self.snake_direction != 90:
+            self.snake_direction = 270
+        elif keys[pygame.K_s] and self.snake_direction != 270:
+            self.snake_direction = 90
 
     def draw_window(self):
         # Draw background
@@ -73,6 +100,18 @@ class Platformer:
         # Draw food
         self.create_food()
         pygame.draw.rect(self.window, (111, 111, 111), self.food, border_radius=30)
+
+        # Score text
+        font = pygame.font.SysFont("Arial", 30)
+
+        score_text = font.render(f"Score: {self.score}", True, (255, 255, 255))
+        self.window.blit(score_text, (20, 750))
+
+        # Draw Borders
+        pygame.draw.rect(self.window, (111, 111, 111), self.top)
+        pygame.draw.rect(self.window, (111, 111, 111), self.bottom)
+        pygame.draw.rect(self.window, (111, 111, 111), self.left)
+        pygame.draw.rect(self.window, (111, 111, 111), self.right)
 
         # Update and fps
         self.clock.tick(self.fps)
@@ -88,6 +127,16 @@ class Platformer:
                 if event.key == pygame.K_ESCAPE:
                     self.state = "menu"
 
+    def start_game(self):
+        # Draw objects
+        self.draw_window()
+
+        # Snake
+        self.move_snake()
+
+        # Check collision
+        self.collision()
+
     def run_game(self):
         while self.run:
 
@@ -100,14 +149,76 @@ class Platformer:
             elif self.state == "options":
                 self.options_menu()
             elif self.state == "start":
-                # Draw objects
-                self.draw_window()
+                self.start_game()
+            elif self.state == "gameover":
+                self.gameover_menu()
 
-                # Snake
-                self.move_snake()
+    def gameover_menu(self):
+        # Reset game
+        self.reset_game()
+        # Draw game over menu
+        self.window.fill((0, 0, 0))
+        font = pygame.font.SysFont("Arial", 60)
 
-                # Check collision
-                self.collision()
+        score_text = font.render(f"Your score: {self.score}", True, (255, 255, 255))
+        gameover_text = font.render("Game Over", True, (255, 0, 0))
+        if not self.hover_new:
+            new_game_text = font.render("New Game", True, (255, 255, 255))
+        else:
+            new_game_text = font.render("New Game", True, (255, 255, 111))
+        if not self.hover_main:
+            main_menu_text = font.render("Main Menu", True, (255, 255, 255))
+        else:
+            main_menu_text = font.render("Main Menu", True, (255, 255, 111))
+        if not self.hover_quit:
+            quit_text = font.render("Quit", True, (255, 255, 255))
+        else:
+            quit_text = font.render("Quit", True, (255, 255, 111))
+
+        score_rect = score_text.get_rect(center=(500, 750))
+        gameover_rect = gameover_text.get_rect(center=(500, 150))
+        main_menu_rect = main_menu_text.get_rect(center=(500, 300))
+        new_game_rect = new_game_text.get_rect(center=(500, 400))
+        quit_rect = quit_text.get_rect(center=(500, 500))
+
+        self.window.blit(score_text, score_rect)
+        self.window.blit(gameover_text, gameover_rect)
+        self.window.blit(main_menu_text, main_menu_rect)
+        self.window.blit(new_game_text, new_game_rect)
+        self.window.blit(quit_text, quit_rect)
+
+        pygame.display.update()
+        mouse_pos = pygame.mouse.get_pos()
+
+        if new_game_rect.collidepoint(mouse_pos):
+            self.hover_new = True
+        else:
+            self.hover_new = False
+        if quit_rect.collidepoint(mouse_pos):
+            self.hover_quit = True
+        else:
+            self.hover_quit = False
+        if main_menu_rect.collidepoint(mouse_pos):
+            self.hover_main = True
+        else:
+            self.hover_main = False
+
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN:
+
+                if new_game_rect.collidepoint(mouse_pos):
+                    self.score = 0
+                    self.state = "start"
+                elif main_menu_rect.collidepoint(mouse_pos):
+                    self.score = 0
+                    self.state = "menu"
+                elif quit_rect.collidepoint(mouse_pos):
+                    pygame.quit()
+                    sys.exit()
+
+            elif event.type == pygame.QUIT:
+                self.run = False
+                sys.exit()
 
     def main_menu(self):
         self.window.fill((0, 0, 0))
@@ -201,6 +312,11 @@ class Platformer:
             elif event.type == pygame.QUIT:
                 self.run = False
                 sys.exit()
+
+    def reset_game(self):
+        self.snake_head = pygame.Rect(20, 20, 40, 40)
+        self.snake_direction = 0
+        self.is_spawned = False
 
 
 if __name__ == "__main__":
