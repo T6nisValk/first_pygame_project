@@ -14,6 +14,8 @@ class Platformer:
         self.run = True
         self.fps = 60
         self.clock = pygame.time.Clock()
+        # self.bg = pygame.image.load("assets/images/snake_bg.jpg").convert_alpha()
+        # self.bg = pygame.transform.scale(self.bg, (1000, 800))
 
         # Snake
         self.snake_head = pygame.Rect(20, 20, 40, 40)
