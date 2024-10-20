@@ -20,7 +20,7 @@ class Platformer:
         # Snake
         self.snake_head = pygame.Rect(20, 20, 40, 40)
         self.snake_body_size = 30
-        self.snake_speed = 11
+        self.snake_speed = 2
         self.segments = []
         self.snake_direction = 0
         self.score = 0
@@ -48,6 +48,7 @@ class Platformer:
     def collision(self):
         if self.snake_head.colliderect(self.food):
             self.score += 1
+            self.snake_speed += 2
             self.is_spawned = False
 
     def create_food(self):
@@ -210,9 +211,11 @@ class Platformer:
 
                 if new_game_rect.collidepoint(mouse_pos):
                     self.score = 0
+                    self.snake_speed = 2
                     self.state = "start"
                 elif main_menu_rect.collidepoint(mouse_pos):
                     self.score = 0
+                    self.snake_speed = 2
                     self.state = "menu"
                 elif quit_rect.collidepoint(mouse_pos):
                     pygame.quit()

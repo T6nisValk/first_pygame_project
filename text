@@ -1,0 +1,6 @@
+segments = 0
+# on collision add segment
+
+for i in range(segments):
+    # Spawn segments, pos -1 last segment
+    pass
