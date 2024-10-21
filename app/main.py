@@ -457,26 +457,21 @@ class LikeASnake:
                 sys.exit()
 
     def reset_game(self):
-        # Reset snake head position and direction
         self.snake_head = pygame.Rect(20, 20, 40, 40)
         self.snake_direction = 0
 
-        # Reset food spawn state
         self.is_spawned = False
 
-        # Reset score and segments
         self.segments = []
 
-        # Add the initial segment (positioned just behind the snake's head initially)
         self.segment = pygame.Rect(
-            self.snake_head.centerx - self.snake_body_size,  # Start it just behind the head
+            self.snake_head.centerx - self.snake_body_size,
             self.snake_head.centery,
             self.snake_body_size,
             self.snake_body_size,
         )
         self.segments.append(self.segment)
 
-        # Reset snake speed
         self.snake_speed = 4
 
 
